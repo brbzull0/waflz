@@ -557,7 +557,7 @@ def test_multiple_scopes_for_limit(setup_scopez_server_action):
     # ------------------------------------------------------------------------------
     # sleep for 10 seconds. Enforcements should expire for both scopes
     # ------------------------------------------------------------------------------
-    time.sleep(10)
+    time.sleep(15)
     # ------------------------------------------------------------------------------
     # making single request for each scope should give 200
     # ------------------------------------------------------------------------------

@@ -67,10 +67,16 @@ add_executable(waflz_server ${HDRS} ${SRCS})
 add_dependencies(waflz_server waflzcore)
 add_dependencies(waflz_server submodule_is2)
 SET_TARGET_PROPERTIES(waflz_server PROPERTIES OUTPUT_NAME "waflz_server")
+add_library(kyotocabinet SHARED IMPORTED)
+set_property(TARGET kyotocabinet PROPERTY IMPORTED_LOCATION ${install_dir}/lib64/libkyotocabinet.so)
+add_library(hiredis SHARED IMPORTED)
+set_property(TARGET hiredis PROPERTY IMPORTED_LOCATION ${install_dir}/lib64/libhiredis.so)
 target_link_libraries(waflz_server
   ${DEBUG_LIBRARIES}
   ${CMAKE_BINARY_DIR}/src/libwaflzcore.a
   ${CMAKE_BINARY_DIR}/submodule_is2-prefix/src/submodule_is2-build/src/libis2.a
+  kyotocabinet
+  hiredis
   ${LIBRARIES}
 )
 install(TARGETS waflz_server

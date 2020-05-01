@@ -79,9 +79,12 @@ SET(HDRS)
 add_executable(wjc_cmd ${HDRS} ${SRCS})
 add_dependencies(wjc_cmd waflzcore)
 SET_TARGET_PROPERTIES(wjc_cmd PROPERTIES OUTPUT_NAME "wjc")
+add_library(kyotocabinet SHARED IMPORTED)
+set_property(TARGET kyotocabinet PROPERTY IMPORTED_LOCATION ${install_dir}/lib64/libkyotocabinet.so)
 target_link_libraries(wjc_cmd
         ${DEBUG_LIBRARIES}
         ${CMAKE_BINARY_DIR}/src/libwaflzcore.a
+        kyotocabinet
         ${LIBRARIES})
 install(TARGETS wjc_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/

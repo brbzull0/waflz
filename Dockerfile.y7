@@ -1,0 +1,25 @@
+FROM docker.ouroath.com:4443/sieve/rhel7:latest
+
+#RUN apt-get update && \
+#    apt-get install -y git software-properties-common && \
+#    apt-get install -y libssl-dev libpcre3-dev libxml2-dev libicu-dev protobuf-compiler libprotobuf-dev python-pip cmake make g++ uuid-dev liblzma-dev google-perftools libgoogle-perftools-dev libhiredis-dev libkyotocabinet-dev
+
+RUN source /opt/rh/devtoolset-6/enable && \
+    source /opt/rh/rh-python36/enable && \
+    yum install -y cmake openssl-devel pcre-devel libxml2-devel libicu-devel protobuf-compiler protobuf-devel uuid-devel xz-devel gperftools hiredis-devel kyotocabinet-devel
+
+COPY . /opt/waflz
+
+RUN cd /opt/waflz && \
+    source /opt/rh/devtoolset-6/enable && \
+    source /opt/rh/rh-python36/enable && \
+     pip install -r requirements.txt && \
+     ./build-y7.sh
+
+EXPOSE 12345
+
+CMD ["/opt/waflz/build/util/waflz_server/waflz_server", \
+  "--ruleset-dir=/opt/waflz/tests/data/waf/ruleset", \
+  "--geoip-db=/opt/waflz/tests/data/waf/db/GeoLite2-City.mmdb", \
+  "-geoip-isp-db=/opt/waflz/tests/data/waf/db/GeoLite2-ASN.mmdb", \
+  "--profile=/opt/waflz/tests/blackbox/ruleset/template.waf.prof.json"]
