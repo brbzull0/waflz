@@ -138,4 +138,13 @@ add_dependencies(wb_scopes waflzcore)
 target_link_libraries(wb_scopes ${DEBUG_LIBRARIES} compiled_catch ${CMAKE_BINARY_DIR}/src/libwaflzcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_scopes PROPERTIES OUTPUT_NAME "wb_scopes")
 add_test(scopes wb_scopes)
+# ------------------------------------------------------------------------------
+# wb_benchmark
+# ------------------------------------------------------------------------------
+SET(SRCS wb_benchmark.cc)
+add_executable(wb_benchmark ${HDRS} ${SRCS})
+add_dependencies(wb_benchmark waflzcore)
+target_link_libraries(wb_benchmark ${DEBUG_LIBRARIES} compiled_catch ${CMAKE_BINARY_DIR}/src/libwaflzcore.a ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_benchmark PROPERTIES OUTPUT_NAME "wb_benchmark")
+###add_test(scopes wb_scopes)
 

@@ -335,6 +335,7 @@ EXECUTE_PROCESS(COMMAND git describe --tags OUTPUT_VARIABLE VERSION OUTPUT_STRIP
 #Does it start with a number?")
 #endif()
 add_definitions(-DWAFLZ_VERSION="${VERSION}")
+if (BUILD_UBUNTU)
 # ------------------------------------------------------------------------------
 # Debian Package Support
 # ------------------------------------------------------------------------------
@@ -354,6 +355,15 @@ message("    Option                                     Value                   
 message("    ---------------------------------------------------------------------")
 message("    Package Version:                           ${CPACK_DEBIAN_PACKAGE_VERSION}")
 message("")
+else()
+message(STATUS "RPM Package Configuration:")
+message("VERSION: ${VERSION}")
+message("DISTRIBUTION: ${DISTRIBUTION}")
+SET(CPACK_GENERATOR "RPM")
+SET(CPACK_RPM_PACKAGE_NAME "waflz")
+SET(CPACK_RPM_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
+SET(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+endif()
 INCLUDE(CPack)
 # ------------------------------------------------------------------------------
 # include source/test directories
