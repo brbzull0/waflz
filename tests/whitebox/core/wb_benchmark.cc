@@ -30,6 +30,7 @@
 #include "waflz/rqst_ctx.h"
 #include "waflz/geoip2_mmdb.h"
 #include "waflz/def.h"
+#include "waflz/trace.h"
 #include "profile.pb.h"
 #include "event.pb.h"
 #include "support/ndebug.h"
@@ -95,7 +96,7 @@ static waflz_pb::profile *init_std_profile_pb(void)
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
-static const char *s_ip = "200.249.12.31";
+static const char *s_ip = "127.0.0.11";
 static int32_t get_rqst_src_addr_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         *a_data = s_ip;
@@ -105,18 +106,37 @@ static int32_t get_rqst_src_addr_cb(const char **a_data, uint32_t &a_len, void *
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
-// static int32_t get_rqst_line_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
-// {
-//         static const char s_line[] = "GET / HTTP/1.1";
-//         *a_data = s_line;
-//         a_len = strlen(s_line);
-//         return 0;
-// }
+static int32_t get_rqst_line_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
+{
+        static const char s_line[] = "GET / HTTP/1.1";
+        *a_data = s_line;
+        a_len = strlen(s_line);
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! get host callback
+//! ----------------------------------------------------------------------------
+static int32_t get_rqst_host_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
+{
+        static const char s_uri[] = "127.0.0.1";
+        *a_data = s_uri;
+        a_len = strlen(s_uri);
+        return 0;
+}
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
-//-- static const char *s_uri = "cats.com";
-static const char *s_uri = "127.0.0.1";
+static int32_t get_rqst_query_str_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
+{
+        static const char s_line[] = "param1=test&para2=test2";  //TODO no question mark?
+        *a_data = s_line;
+        a_len = strlen(s_line);
+        return 0;
+}
+//: ----------------------------------------------------------------------------
+//: TODO
+//: ----------------------------------------------------------------------------
+static const char *s_uri = "/test.pl";
 static int32_t get_rqst_uri_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         *a_data = s_uri;
@@ -168,7 +188,7 @@ static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx
 {
     //-- static const char s_line[] = "bananas.com/test.pl?param1=test&para2=test2";
     //-- static const char s_line[] = "bananas.com/test.pl??exec=/bin/bash";
-        static const char s_line[] = "127.0.0.1:4080/test.pl?param1=test&para2=test2";
+        static const char s_line[] = "127.0.0.1/test.pl?param1=test&para2=test2";
         *a_data = s_line;
         a_len = strlen(s_line);
         return 0;
@@ -176,13 +196,13 @@ static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx
 //: ----------------------------------------------------------------------------
 //: s_get_rqst_path_cb
 //: ----------------------------------------------------------------------------
-// static const char *s_path = "/my/cool/path_name.html";
-// static int32_t get_rqst_path_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
-// {
-//         *a_data = s_path;
-//         a_len = strlen(s_path);
-//         return 0;
-// }
+static const char *s_path = "/test.pl";
+static int32_t get_rqst_path_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
+{
+        *a_data = s_path;
+        a_len = strlen(s_path);
+        return 0;
+}
 //: ----------------------------------------------------------------------------
 //:+ get_rqst_header_size_cb
 //: ----------------------------------------------------------------------------
@@ -328,10 +348,29 @@ static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
         return 0;
 }
 //: ----------------------------------------------------------------------------
-//: acl tests
+//: get_rqst_body_str_cb
 //: ----------------------------------------------------------------------------
-TEST_CASE( "acl test", "[acl]" )
+#define _RQST_BODY_JSON "{\"monkeys\": \"bananas\", \"koalas\": \"fruitloops\", \"seamonkeys\": \"plankton\"}"
+#define _RQST_BODY_XML "<monkeys><gorilla>coco</gorilla><mandrill>dooby</mandrill><baboon>groovy</baboon></monkeys>"
+static const char *g_body_str = _RQST_BODY_JSON;
+static int32_t get_rqst_body_str_cb(char *ao_data,
+                                    uint32_t &ao_data_len,
+                                    bool &ao_is_eos,
+                                    void *a_ctx,
+                                    uint32_t a_to_read)
 {
+        ao_data_len = strlen(g_body_str);
+        memcpy(ao_data, g_body_str, ao_data_len);
+        ao_is_eos = true;
+        return 0;
+}
+//: ----------------------------------------------------------------------------
+//: benchmark tests
+//: ----------------------------------------------------------------------------
+TEST_CASE( "benchmark test", "[benchmark]" )
+{
+  ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);  //_RULE
+    ns_waflz::trc_file_open("/dev/stdout");
     //std::cout << "argc:" << argc << " argv[0]:" << argv[0] << "\n";
         // -------------------------------------------------
         // get ruleset dir
@@ -354,7 +393,7 @@ TEST_CASE( "acl test", "[acl]" )
         //--------------------------------------------------
         // acl
         // -------------------------------------------------
-        SECTION("acl tests") {
+        SECTION("benchmark tests") {
                 // -----------------------------------------
                 // setup
                 // -----------------------------------------
@@ -379,28 +418,24 @@ TEST_CASE( "acl test", "[acl]" )
                 // cb
                 // -----------------------------------------
                 ns_waflz::rqst_ctx::s_get_rqst_src_addr_cb = get_rqst_src_addr_cb;
-                //-- ns_waflz::rqst_ctx::s_get_rqst_line_cb = get_rqst_line_cb;
-                //-- ns_waflz::rqst_ctx::s_get_rqst_uri_cb = get_rqst_uri_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_line_cb = get_rqst_line_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_uri_cb = get_rqst_uri_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_url_cb = get_rqst_url_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_header_size_cb = get_rqst_header_size_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_header_w_idx_cb = get_rqst_header_w_idx_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_scheme_cb = get_rqst_scheme_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_port_cb = get_rqst_port_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_method_cb = get_rqst_method_cb;
-                //-- ns_waflz::rqst_ctx::s_get_rqst_path_cb = get_rqst_path_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_path_cb = get_rqst_path_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_host_cb = get_rqst_host_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_protocol_cb = get_rqst_protocol_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_query_str_cb = get_rqst_query_str_cb;
+                //--?? ns_waflz::rqst_ctx::s_get_rqst_uuid_cb = get_rqst_uuid_cb;
+                ns_waflz::rqst_ctx::s_get_rqst_body_str_cb = get_rqst_body_str_cb;
                 void *l_ctx = NULL;
                 waflz_pb::event *l_event = NULL;
                 ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
 
-                // *****************************************
-                // -----------------------------------------
-                //             I P   T E S T
-                // -----------------------------------------
-                // *****************************************
-                // -----------------------------------------
-                // validate blacklist
-                // -----------------------------------------
-                //////s_ip = "243.49.2.7";
                 unsigned long long NUM_REQUESTS(1);
                 std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
                 for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
