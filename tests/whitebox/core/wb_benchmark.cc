@@ -49,64 +49,7 @@
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
-static waflz_pb::profile *init_std_profile_pb(void)
-{
-        // -----------------------------------------
-        // setup...
-        // -----------------------------------------
-        waflz_pb::profile *l_pb = NULL;
-        l_pb = new waflz_pb::profile();
-        l_pb->set_id("my_id");
-        l_pb->set_name("my_name");
-        l_pb->set_ruleset_id("OWASP-CRS-2.2.9");
-        l_pb->set_ruleset_version("2017-08-01");
-        //-- l_pb->set_ruleset_id("OWASP-CRS-3.2");
-        //-- l_pb->set_ruleset_version("2018-10-04");
-        // -----------------------------------------
-        // general settings -required fields
-        // -----------------------------------------
-        ::waflz_pb::profile_general_settings_t* l_gx = NULL;
-        l_gx = l_pb->mutable_general_settings();
-        l_gx->set_process_request_body(true);
-        l_gx->set_xml_parser(true);
-        l_gx->set_process_response_body(false);
-        l_gx->set_validate_utf8_encoding(true);
-        l_gx->set_max_num_args(3);
-        l_gx->set_arg_name_length(100);
-        l_gx->set_arg_length(400);
-        l_gx->set_total_arg_length(64000);
-        l_gx->set_max_file_size(1048576);
-        l_gx->set_combined_file_sizes(1048576);
-        l_gx->add_allowed_http_methods("GET");
-        l_gx->add_allowed_request_content_types("html");
-        // -----------------------------------------
-        // add policies
-        // -----------------------------------------
-        l_pb->add_policies("modsecurity_crs_21_protocol_anomalies.conf");
-        l_pb->add_policies("modsecurity_crs_49_inbound_blocking.conf");
-        // -----------------------------------------
-        // anomaly settings -required fields
-        // -----------------------------------------
-        l_gx->set_anomaly_threshold(1);
-        // -----------------------------------------
-        // access settings -required fields
-        // -----------------------------------------
-        ::waflz_pb::acl* l_ax = NULL;
-        l_ax = l_pb->mutable_access_settings();
-        ::waflz_pb::acl_lists_t* l_ax_ip = l_ax->mutable_ip();
-        UNUSED(l_ax_ip);
-        ::waflz_pb::acl_lists_t* l_ax_cntry = l_ax->mutable_country();
-        UNUSED(l_ax_cntry);
-        ::waflz_pb::acl_lists_t* l_ax_url = l_ax->mutable_url();
-        UNUSED(l_ax_url);
-        ::waflz_pb::acl_lists_t* l_ax_refr = l_ax->mutable_referer();
-        UNUSED(l_ax_refr);
-        return l_pb;
-}
-//: ----------------------------------------------------------------------------
-//: TODO
-//: ----------------------------------------------------------------------------
-static const char *s_ip = "127.0.0.11";
+static const char *s_ip = "127.0.0.1";
 static int32_t get_rqst_src_addr_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         *a_data = s_ip;
@@ -196,8 +139,6 @@ static int32_t get_rqst_port_cb(uint32_t &a_val, void *a_ctx)
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
-    //-- static const char s_line[] = "bananas.com/test.pl?param1=test&para2=test2";
-    //-- static const char s_line[] = "bananas.com/test.pl??exec=/bin/bash";
         static const char s_line[] = "127.0.0.1/test.pl?param1=test&para2=test2";
         *a_data = s_line;
         a_len = strlen(s_line);
@@ -379,9 +320,9 @@ static int32_t get_rqst_body_str_cb(char *ao_data,
 //: ----------------------------------------------------------------------------
 TEST_CASE( "benchmark test", "[benchmark]" )
 {
-  //--ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
-  //--ns_waflz::trc_file_open("/dev/stdout");
-    //std::cout << "argc:" << argc << " argv[0]:" << argv[0] << "\n";
+        //--ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
+        //--ns_waflz::trc_file_open("/dev/stdout");
+
         // -------------------------------------------------
         // get ruleset dir
         // -------------------------------------------------
@@ -392,7 +333,7 @@ TEST_CASE( "benchmark test", "[benchmark]" )
         }
         std::string l_rule_dir = l_cwd;
         l_rule_dir += "/../../../../tests/data/waf/ruleset/";
-        //l_rule_dir += "/../tests/data/waf/ruleset/";
+
         // -------------------------------------------------
         // geoip
         // -------------------------------------------------
@@ -407,9 +348,12 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 // -----------------------------------------
                 // setup
                 // -----------------------------------------
-                ns_waflz::engine *l_engine = new ns_waflz::engine(); //done
+                ns_waflz::engine *l_engine = new ns_waflz::engine();
+
                 //-- l_engine->set_geoip2_dbs(l_geoip2_city_file, l_geoip2_asn_file); //done
+
                 l_engine->set_ruleset_dir(l_rule_dir); //done
+
                 int32_t l_s;
                 l_s = l_engine->init(); //done
                 REQUIRE((l_s == WAFLZ_STATUS_OK));
@@ -418,7 +362,7 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 // -------------------------------------------------
                 char *l_buf;
                 uint32_t l_buf_len;
-                //NDBG_PRINT("reading file: %s\n", l_profile_file.c_str());
+
                 //-- std::string l_profile_file_name("../../../../tests/blackbox/ruleset/template.waf.prof.json");
                 //-- std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu.waf.prof.json");
                 std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu-ats.waf.prof.json");
@@ -428,17 +372,14 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                         NDBG_PRINT("error read_file: %s\n", l_profile_file_name.c_str());
                         return /*STATUS_ERROR*/;
                 }
-                ns_waflz::profile *l_profile = new ns_waflz::profile(*l_engine); //done
-                //-- waflz_pb::profile *l_pb = init_std_profile_pb();
+                ns_waflz::profile *l_profile = new ns_waflz::profile(*l_engine);
 
                 // -----------------------------------------
                 // load
                 // -----------------------------------------
-                //-- l_s = l_profile->load(l_pb);
                 l_s = l_profile->load(l_buf, l_buf_len);
                 NDBG_PRINT("error[%d]: %s\n", l_s, l_profile->get_err_msg());
                 REQUIRE((l_s == WAFLZ_STATUS_OK));
-                //-- if(l_pb) { delete l_pb; l_pb = NULL;}
 
                 // -----------------------------------------
                 // cb
@@ -457,7 +398,8 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 ns_waflz::rqst_ctx::s_get_rqst_protocol_cb = get_rqst_protocol_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_query_str_cb = get_rqst_query_str_cb;
                 //--?? ns_waflz::rqst_ctx::s_get_rqst_uuid_cb = get_rqst_uuid_cb;
-                //--ns_waflz::rqst_ctx::s_get_rqst_body_str_cb = get_rqst_body_str_cb;
+                //--?? ns_waflz::rqst_ctx::s_get_rqst_body_str_cb = get_rqst_body_str_cb;
+
                 void *l_ctx = NULL;
                 waflz_pb::event *l_event = NULL;
                 ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
@@ -465,7 +407,6 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 unsigned long long NUM_REQUESTS(100000);
                 std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
                 for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
-                    //std::cout << "Proceeding with request " << i << std::endl;
                     l_s = l_profile->process(&l_event, l_ctx, ns_waflz::PART_MK_ALL, &l_rqst_ctx);
                     REQUIRE((l_s == WAFLZ_STATUS_OK));
                     if (l_event) {
@@ -486,11 +427,6 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                         delete l_profile;
                         l_profile = NULL;
                 }
-                // if(l_pb)
-                // {
-                //         delete l_pb;
-                //         l_pb = NULL;
-                // }
                 if(l_engine)
                 {
                         delete l_engine;
