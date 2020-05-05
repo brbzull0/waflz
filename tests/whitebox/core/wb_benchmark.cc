@@ -34,8 +34,18 @@
 #include "profile.pb.h"
 #include "event.pb.h"
 #include "support/ndebug.h"
+#include "support/file_util.h"
 #include <unistd.h>
 #include <iostream>
+//: ----------------------------------------------------------------------------
+//: constants
+//: ----------------------------------------------------------------------------
+#ifndef STATUS_OK
+  #define STATUS_OK 0
+#endif
+#ifndef STATUS_ERROR
+  #define STATUS_ERROR -1
+#endif
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
@@ -48,10 +58,10 @@ static waflz_pb::profile *init_std_profile_pb(void)
         l_pb = new waflz_pb::profile();
         l_pb->set_id("my_id");
         l_pb->set_name("my_name");
-        //l_pb->set_ruleset_id("OWASP-CRS-2.2.9");
-        //l_pb->set_ruleset_version("2017-08-01");
-        l_pb->set_ruleset_id("OWASP-CRS-3.2");
-        l_pb->set_ruleset_version("2018-10-04");
+        l_pb->set_ruleset_id("OWASP-CRS-2.2.9");
+        l_pb->set_ruleset_version("2017-08-01");
+        //-- l_pb->set_ruleset_id("OWASP-CRS-3.2");
+        //-- l_pb->set_ruleset_version("2018-10-04");
         // -----------------------------------------
         // general settings -required fields
         // -----------------------------------------
@@ -72,8 +82,8 @@ static waflz_pb::profile *init_std_profile_pb(void)
         // -----------------------------------------
         // add policies
         // -----------------------------------------
-        //-- l_pb->add_policies("modsecurity_crs_21_protocol_anomalies.conf");
-        //-- l_pb->add_policies("modsecurity_crs_49_inbound_blocking.conf");
+        l_pb->add_policies("modsecurity_crs_21_protocol_anomalies.conf");
+        l_pb->add_policies("modsecurity_crs_49_inbound_blocking.conf");
         // -----------------------------------------
         // anomaly settings -required fields
         // -----------------------------------------
@@ -369,8 +379,8 @@ static int32_t get_rqst_body_str_cb(char *ao_data,
 //: ----------------------------------------------------------------------------
 TEST_CASE( "benchmark test", "[benchmark]" )
 {
-  ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);  //_RULE
-    ns_waflz::trc_file_open("/dev/stdout");
+  //--ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
+  //--ns_waflz::trc_file_open("/dev/stdout");
     //std::cout << "argc:" << argc << " argv[0]:" << argv[0] << "\n";
         // -------------------------------------------------
         // get ruleset dir
@@ -397,22 +407,38 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 // -----------------------------------------
                 // setup
                 // -----------------------------------------
-                ns_waflz::engine *l_engine = new ns_waflz::engine();
-                l_engine->set_geoip2_dbs(l_geoip2_city_file, l_geoip2_asn_file);
-                l_engine->set_ruleset_dir(l_rule_dir);
+                ns_waflz::engine *l_engine = new ns_waflz::engine(); //done
+                //-- l_engine->set_geoip2_dbs(l_geoip2_city_file, l_geoip2_asn_file); //done
+                l_engine->set_ruleset_dir(l_rule_dir); //done
                 int32_t l_s;
-                l_s = l_engine->init();
+                l_s = l_engine->init(); //done
                 REQUIRE((l_s == WAFLZ_STATUS_OK));
-                ns_waflz::profile *l_profile = new ns_waflz::profile(*l_engine);
-                waflz_pb::profile *l_pb = init_std_profile_pb();
+                // -------------------------------------------------
+                // read file: profle
+                // -------------------------------------------------
+                char *l_buf;
+                uint32_t l_buf_len;
+                //NDBG_PRINT("reading file: %s\n", l_profile_file.c_str());
+                //-- std::string l_profile_file_name("../../../../tests/blackbox/ruleset/template.waf.prof.json");
+                //-- std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu.waf.prof.json");
+                std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu-ats.waf.prof.json");
+                l_s = ns_waflz::read_file(l_profile_file_name.c_str(), &l_buf, l_buf_len);
+                if(l_s != WAFLZ_STATUS_OK)
+                {
+                        NDBG_PRINT("error read_file: %s\n", l_profile_file_name.c_str());
+                        return /*STATUS_ERROR*/;
+                }
+                ns_waflz::profile *l_profile = new ns_waflz::profile(*l_engine); //done
+                //-- waflz_pb::profile *l_pb = init_std_profile_pb();
 
                 // -----------------------------------------
                 // load
                 // -----------------------------------------
-                l_s = l_profile->load(l_pb);
+                //-- l_s = l_profile->load(l_pb);
+                l_s = l_profile->load(l_buf, l_buf_len);
                 NDBG_PRINT("error[%d]: %s\n", l_s, l_profile->get_err_msg());
                 REQUIRE((l_s == WAFLZ_STATUS_OK));
-                if(l_pb) { delete l_pb; l_pb = NULL;}
+                //-- if(l_pb) { delete l_pb; l_pb = NULL;}
 
                 // -----------------------------------------
                 // cb
@@ -431,12 +457,12 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 ns_waflz::rqst_ctx::s_get_rqst_protocol_cb = get_rqst_protocol_cb;
                 ns_waflz::rqst_ctx::s_get_rqst_query_str_cb = get_rqst_query_str_cb;
                 //--?? ns_waflz::rqst_ctx::s_get_rqst_uuid_cb = get_rqst_uuid_cb;
-                ns_waflz::rqst_ctx::s_get_rqst_body_str_cb = get_rqst_body_str_cb;
+                //--ns_waflz::rqst_ctx::s_get_rqst_body_str_cb = get_rqst_body_str_cb;
                 void *l_ctx = NULL;
                 waflz_pb::event *l_event = NULL;
                 ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
 
-                unsigned long long NUM_REQUESTS(1);
+                unsigned long long NUM_REQUESTS(100000);
                 std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
                 for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
                     //std::cout << "Proceeding with request " << i << std::endl;
@@ -460,11 +486,11 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                         delete l_profile;
                         l_profile = NULL;
                 }
-                if(l_pb)
-                {
-                        delete l_pb;
-                        l_pb = NULL;
-                }
+                // if(l_pb)
+                // {
+                //         delete l_pb;
+                //         l_pb = NULL;
+                // }
                 if(l_engine)
                 {
                         delete l_engine;
