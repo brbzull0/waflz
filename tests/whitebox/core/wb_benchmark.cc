@@ -108,7 +108,7 @@ static int32_t get_rqst_src_addr_cb(const char **a_data, uint32_t &a_len, void *
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_line_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
-        static const char s_line[] = "GET / HTTP/1.1";
+        static const char s_line[] = "GET /test.pl HTTP/1.1";
         *a_data = s_line;
         a_len = strlen(s_line);
         return 0;
