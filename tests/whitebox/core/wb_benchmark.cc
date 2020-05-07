@@ -320,8 +320,8 @@ static int32_t get_rqst_body_str_cb(char *ao_data,
 //: ----------------------------------------------------------------------------
 TEST_CASE( "benchmark test", "[benchmark]" )
 {
-        //--ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
-        //--ns_waflz::trc_file_open("/dev/stdout");
+        ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
+        ns_waflz::trc_file_open("/dev/stdout");
 
         // -------------------------------------------------
         // get ruleset dir
@@ -404,7 +404,7 @@ TEST_CASE( "benchmark test", "[benchmark]" )
                 waflz_pb::event *l_event = NULL;
                 ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
 
-                unsigned long long NUM_REQUESTS(100000);
+                unsigned long long NUM_REQUESTS(1);
                 std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
                 for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
                     l_s = l_profile->process(&l_event, l_ctx, ns_waflz::PART_MK_ALL, &l_rqst_ctx);

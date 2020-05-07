@@ -22,7 +22,7 @@
 # project setup
 # ------------------------------------------------------------------------------
 project(waflz_core_tests)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 2.8)
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
@@ -43,3 +43,4 @@ add_waflz_wb_test(var)
 add_waflz_wb_test(tx)
 add_waflz_wb_test(render)
 add_waflz_wb_test(scopes)
+add_waflz_wb_test(benchmark)
