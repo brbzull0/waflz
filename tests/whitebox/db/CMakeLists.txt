@@ -21,8 +21,8 @@
 # ------------------------------------------------------------------------------
 # Project setup
 # ------------------------------------------------------------------------------
-project(waflz)
-cmake_minimum_required(VERSION 2.8.0)
+project(waflz_db_tests)
+cmake_minimum_required(VERSION 3.5)
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
@@ -30,31 +30,12 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/proto
 )
+
 # ------------------------------------------------------------------------------
 # seem to require this for lzo linking
 # ------------------------------------------------------------------------------
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -no-pie")
-# ------------------------------------------------------------------------------
-# wb_kycb_db
-# ------------------------------------------------------------------------------
-SET(SRCS wb_kycb_db.cc)
-add_executable(wb_kycb_db ${HDRS} ${SRCS})
-add_dependencies(wb_kycb_db waflzcore)
-add_library(kyotocabinet SHARED IMPORTED)
-set_property(TARGET kyotocabinet PROPERTY IMPORTED_LOCATION ${install_dir}/lib64/libkyotocabinet.so)
-target_link_libraries(wb_kycb_db ${DEBUG_LIBRARIES} compiled_catch ${CMAKE_BINARY_DIR}/src/libwaflzcore.a kyotocabinet ${LIBRARIES})
-SET_TARGET_PROPERTIES(wb_kycb_db PROPERTIES OUTPUT_NAME "wb_kycb_db")
-add_test(kycb_db wb_kycb_db)
-# ------------------------------------------------------------------------------
-# wb_redis_db
-# NOTE -this requires running redis instance
-# ------------------------------------------------------------------------------
-SET(SRCS wb_redis_db.cc)
-add_executable(wb_redis_db ${HDRS} ${SRCS})
-add_dependencies(wb_redis_db waflzcore)
-add_library(hiredis SHARED IMPORTED)
-set_property(TARGET hiredis PROPERTY IMPORTED_LOCATION ${install_dir}/lib64/libhiredis.so)
-target_link_libraries(wb_redis_db ${DEBUG_LIBRARIES} compiled_catch ${CMAKE_BINARY_DIR}/src/libwaflzcore.a hiredis ${LIBRARIES})
-SET_TARGET_PROPERTIES(wb_redis_db PROPERTIES OUTPUT_NAME "wb_redis_db")
+
+add_waflz_wb_test(kycb_db)
 # commenting out -requires redis to run...
-#add_test(redis_db wb_redis_db)
+#add_waflz_wb_test(redis_db)
