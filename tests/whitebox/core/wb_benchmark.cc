@@ -89,7 +89,7 @@ static int32_t get_rqst_query_str_cb(const char **a_data, uint32_t &a_len, void 
 //: ----------------------------------------------------------------------------
 //: TODO
 //: ----------------------------------------------------------------------------
-static const char *s_uri = "/test.pl";
+static const char *s_uri = "/test.pl?param1=test&para2=test2";
 static int32_t get_rqst_uri_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         *a_data = s_uri;
@@ -139,7 +139,7 @@ static int32_t get_rqst_port_cb(uint32_t &a_val, void *a_ctx)
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
-        static const char s_line[] = "127.0.0.1/test.pl?param1=test&para2=test2";
+        static const char s_line[] = "http://127.0.0.1/test.pl?param1=test&para2=test2";
         *a_data = s_line;
         a_len = strlen(s_line);
         return 0;
@@ -159,7 +159,7 @@ static int32_t get_rqst_path_cb(const char **a_data, uint32_t &a_len, void *a_ct
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_header_size_cb(uint32_t &a_val, void *a_ctx)
 {
-        a_val = 10;
+        a_val = 11;
         return 0;
 }
 //: ----------------------------------------------------------------------------
