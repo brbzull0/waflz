@@ -47,19 +47,7 @@
   #define STATUS_ERROR -1
 #endif
 
-// external api
-typedef struct waflz_profile_t waflz_profile_t;
-typedef struct waflz_transaction_t waflz_transaction_t;
-
-waflz_profile_t* waflz_profile_new_load(const char* rule_dir, const char* profile_file_name);
-int waflz_profile_process(waflz_transaction_t* tx);
-void waflz_profile_clean(waflz_profile_t* wp);
-
-waflz_transaction_t *waflz_new_transaction(waflz_profile_t *profile);
-int waflz_process_connection(waflz_transaction_t *t, const char *client_ip, const char *host, int port, const char* method, const char *scheme);
-int waflz_process_uri(waflz_transaction_t *t, const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version);
-int waflz_add_request_header(waflz_transaction_t *transaction, const char *key, const char *value);
-void waflz_transaction_cleanup(waflz_transaction_t *transaction);
+#include "waflz_ts.h"
 
 struct waflz_profile_t {
     ns_waflz::profile* profile;
@@ -69,14 +57,12 @@ struct waflz_profile_t {
 struct waflz_transaction_t {
     waflz_profile_t* profile;
 
-    //int waflz_process_connection(waflz_transaction_t *t, const char *client_ip, const char *host, int port, const char* method, const char *scheme)
     const char *client_ip;
     const char *host;
     int port;
     const char *method;
     const char *scheme;
 
-    //int waflz_process_uri(waflz_transaction_t *t, const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version);
     const char *url;  //(REQUEST_URI_RAW)  "http://127.0.0.1/test.pl?param1=test&para2=test2"
     const char *uri;  //(REQUEST_URI) : This variable holds the full request URL including the query string data (e.g., /index.php?p=X). However, it will never contain a domain name, even if it was provided on the request line.
     const char *path;  //1. (REQUEST_FILENAME): This variable holds the relative request URL without the query string part (e.g., /index.php).
@@ -85,12 +71,32 @@ struct waflz_transaction_t {
     const char *protocol;
     const char *http_version;
 
-    //int waflz_add_request_header(waflz_transaction_t *transaction, const char *key, const char *value)
     std::vector<std::pair<const char*, const char*> > headers;  //consider std::array<N, std::pair<> >, where N is 20?
 
-    //synthetics
     std::string rqst_line;  // GET /index.html HTTP/1.1
     std::string rqst_protocol;  // HTTP/1.1
+
+    waflz_transaction_t()
+        : profile(nullptr),
+          client_ip(nullptr),
+          host(nullptr),
+          port(0),
+          method(nullptr),
+          scheme(nullptr),
+          url(nullptr),
+          uri(nullptr),
+          path(nullptr),
+          query(nullptr),
+          protocol(nullptr),
+          http_version(nullptr),
+          headers(),
+          rqst_line(),
+          rqst_protocol()
+    {}
+    ~waflz_transaction_t()
+    {}
+    waflz_transaction_t(const waflz_transaction_t&);
+    waflz_transaction_t& operator=(const waflz_transaction_t&);
 };
 
 //: ----------------------------------------------------------------------------
@@ -246,31 +252,6 @@ static int32_t get_rqst_header_size_cb(uint32_t &a_val, void *a_ctx)
 //: ----------------------------------------------------------------------------
 //:+ get_rqst_header_w_idx_cb
 //: ----------------------------------------------------------------------------
-static const char *s_header_k0 = "Host";
-static const char *s_header_v0 = "net.tutsplus.com";
-static const char *s_header_k1 = "User-Agent";
-static const char *s_header_v1 = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.5) " \
-                                 "Gecko/20091102 Firefox/3.5.5 (.NET CLR 3.5.30729)";
-static const char *s_header_k2 = "Accept";
-static const char *s_header_v2 = "text/html,application/xhtml+xml,application/xml;" \
-                                 "q=0.9,*/*;q=0.8";
-static const char *s_header_k3 = "Accept-Language";
-static const char *s_header_v3 = "en-us,en;q=0.5";
-static const char *s_header_k4 = "Accept-Encoding";
-static const char *s_header_v4 = "gzip,deflate";
-static const char *s_header_k5 = "Accept-Charset";
-static const char *s_header_v5 = "ISO-8859-1,utf-8;q=0.7,*;q=0.7";
-static const char *s_header_k6 = "Keep-Alive";
-static const char *s_header_v6 = "300";
-static const char *s_header_k7 = "Connection";
-static const char *s_header_v7 = "keep-alive";
-static const char *s_header_k8 = "Cookie";
-static const char *s_header_v8 = "PHPSESSID=r2t5uvjq435r4q7ib3vtdjq120";
-static const char *s_header_k9 = "Pragma";
-static const char *s_header_v9 = "no-cache";
-static const char *s_header_k10 = "Cache-Control";
-static const char *s_header_v10 = "no-cache";
-
 static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
                                         uint32_t &ao_key_len,
                                         const char **ao_val,
@@ -293,29 +274,15 @@ static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: get_rqst_body_str_cb
-//: ----------------------------------------------------------------------------
-#define _RQST_BODY_JSON "{\"monkeys\": \"bananas\", \"koalas\": \"fruitloops\", \"seamonkeys\": \"plankton\"}"
-#define _RQST_BODY_XML "<monkeys><gorilla>coco</gorilla><mandrill>dooby</mandrill><baboon>groovy</baboon></monkeys>"
-static const char *g_body_str = _RQST_BODY_JSON;
-static int32_t get_rqst_body_str_cb(char *ao_data,
-                                    uint32_t &ao_data_len,
-                                    bool &ao_is_eos,
-                                    void *a_ctx,
-                                    uint32_t a_to_read)
-{
-        ao_data_len = strlen(g_body_str);
-        memcpy(ao_data, g_body_str, ao_data_len);
-        ao_is_eos = true;
-        return 0;
-}
 
 waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
                                         const char* profile_file_name)
 {
-    //TODO must be a singleton
-    waflz_profile_t* wp = new waflz_profile_t;
+    //must be a singleton
+    static waflz_profile_t* wp = nullptr;
+    if (wp)
+        return wp;
+    wp = new waflz_profile_t;
     
     wp->engine = new ns_waflz::engine();
     wp->engine->set_ruleset_dir(rule_dir); //done
@@ -357,7 +324,7 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
     return wp;
 }
 
-int waflz_profile_process(waflz_transaction_t* tx)
+int32_t waflz_profile_process(waflz_transaction_t* tx)
 {
     void *l_ctx = tx;
     waflz_pb::event *l_event = NULL;
@@ -390,16 +357,17 @@ waflz_transaction_t *waflz_new_transaction(waflz_profile_t *profile)
     return t;
 }
 
-int waflz_process_connection(waflz_transaction_t *t, const char *client_ip, const char *host, int port, const char* method, const char *scheme)
+int waflz_transaction_add_connection(waflz_transaction_t *t, const char *client_ip, const char *host, int port, const char* method, const char *scheme)
 {
     t->client_ip = client_ip;
     t->host = host;
     t->port = port;
     t->method = method;
     t->scheme = scheme;
+    return 0;
 }
 
-int waflz_process_uri(waflz_transaction_t *t, const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version)
+int waflz_transaction_add_uri(waflz_transaction_t *t, const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version)
 {
     t->url = url;
     t->uri = uri;
@@ -407,78 +375,16 @@ int waflz_process_uri(waflz_transaction_t *t, const char *url, const char *uri, 
     t->query = query;
     t->protocol = protocol;
     t->http_version = http_version;
+    return 0;
 }
 
-int waflz_add_request_header(waflz_transaction_t *t, const char *key, const char *value)
+int waflz_transaction_add_request_header(waflz_transaction_t *t, const char *key, const char *value)
 {
     t->headers.emplace_back(std::pair<const char*, const char*>(key, value));
+    return 0;
 }
 
-void waflz_transaction_cleanup(waflz_transaction_t *transaction)
+void waflz_transaction_clean(waflz_transaction_t *transaction)
 {
     delete transaction;
-}
-
-//: ----------------------------------------------------------------------------
-//: benchmark tests
-//: ----------------------------------------------------------------------------
-TEST_CASE( "benchmark test", "[benchmark2]" )
-{
-        ns_waflz::trc_level_set(ns_waflz::WFLZ_TRC_LEVEL_ALL);
-        ns_waflz::trc_file_open("/dev/stdout");
-
-        // -------------------------------------------------
-        // get ruleset dir
-        // -------------------------------------------------
-        char l_cwd[1024];
-        if(getcwd(l_cwd, sizeof(l_cwd)) != NULL)
-        {
-                //fprintf(stdout, "Current working dir: %s\n", cwd);
-        }
-        std::string l_rule_dir = l_cwd;
-        l_rule_dir += "/../../../../tests/data/waf/ruleset/";
-
-        //--------------------------------------------------
-        // acl
-        // -------------------------------------------------
-        SECTION("benchmark tests") {
-                // -----------------------------------------
-                // setup
-                // -----------------------------------------
-                //-- std::string l_profile_file_name("../../../../tests/blackbox/ruleset/template.waf.prof.json");
-                //-- std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu.waf.prof.json");
-                std::string l_profile_file_name("../../../../tests/blackbox/rules/test_bb_rtu-ats.waf.prof.json");
-                waflz_profile_t* wp = waflz_profile_new_load(l_rule_dir.c_str(), l_profile_file_name.c_str());
-
-                unsigned long long NUM_REQUESTS(1);
-                std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
-                for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
-                    waflz_transaction_t* tx = waflz_new_transaction(wp);
-                    
-                    waflz_process_connection(tx, "127.0.0.1", "127.0.0.1", 80, "GET", "http");
-                    //waflz_process_uri(tx, "http://127.0.0.1/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl", "param1=test&para2=test2", "HTTP", "1.1");
-                    waflz_process_uri(tx, "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "param1=test&para2=test2", "HTTP", "1.1");
-
-                    waflz_add_request_header(tx, s_header_k0, s_header_v0);
-                    waflz_add_request_header(tx, s_header_k1, s_header_v1);
-                    waflz_add_request_header(tx, s_header_k2, s_header_v2);
-                    waflz_add_request_header(tx, s_header_k3, s_header_v3);
-                    waflz_add_request_header(tx, s_header_k4, s_header_v4);
-                    waflz_add_request_header(tx, s_header_k5, s_header_v5);
-                    waflz_add_request_header(tx, s_header_k6, s_header_v6);
-                    waflz_add_request_header(tx, s_header_k7, s_header_v7);
-                    waflz_add_request_header(tx, s_header_k8, s_header_v8);
-                    waflz_add_request_header(tx, s_header_k9, s_header_v9);
-                    waflz_add_request_header(tx, s_header_k10, s_header_v10);
-                    
-                    int32_t l_s = waflz_profile_process(tx);
-                    REQUIRE((l_s == WAFLZ_STATUS_OK));
-                    delete tx;
-                }
-
-                // -----------------------------------------
-                // cleanup
-                // -----------------------------------------
-                waflz_profile_clean(wp);
-        }
 }

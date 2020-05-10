@@ -389,6 +389,7 @@ if (BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
+add_subdirectory(plugins/ts/src)
 # ------------------------------------------------------------------------------
 # release target
 # NOTE deb has to exist in order to create tar.gz
