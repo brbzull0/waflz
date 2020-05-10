@@ -27,6 +27,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/plugins/ts/src
   ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/proto
 )
@@ -44,4 +45,10 @@ add_waflz_wb_test(tx)
 add_waflz_wb_test(render)
 add_waflz_wb_test(scopes)
 add_waflz_wb_test(benchmark)
-add_waflz_wb_test(benchmark2)
+
+#add_waflz_wb_test(benchmark2)
+add_executable("wb_benchmark2" "wb_benchmark2.cc")
+add_dependencies(wb_benchmark2 waflzts)
+target_link_libraries("wb_benchmark2" ${DEBUG_LIBRARIES} waflz_compiled_catch waflzts waflzcore ${LIBRARIES})
+add_test(benchmark2 "wb_benchmark2")
+

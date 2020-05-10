@@ -23,7 +23,7 @@
 //: ----------------------------------------------------------------------------
 //: includes
 //: ----------------------------------------------------------------------------
-#include "catch/catch.hpp"
+//--#include "catch/catch.hpp"
 #include "waflz/engine.h"
 #include "waflz/profile.h"
 #include "waflz/instances.h"
@@ -288,7 +288,10 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
     wp->engine->set_ruleset_dir(rule_dir); //done
 
     int32_t l_s = wp->engine->init(); //done
-    REQUIRE((l_s == WAFLZ_STATUS_OK));
+    if (l_s != WAFLZ_STATUS_OK) {
+        //TODO cleanup
+        return nullptr;
+    }
 
     char *l_buf;
     uint32_t l_buf_len;
@@ -303,7 +306,10 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
 
     l_s = wp->profile->load(l_buf, l_buf_len);
     NDBG_PRINT("error[%d]: %s\n", l_s, wp->profile->get_err_msg());
-    REQUIRE((l_s == WAFLZ_STATUS_OK));
+    if (l_s != WAFLZ_STATUS_OK) {
+        //TODO cleanup
+        return nullptr;
+    }
     
     ns_waflz::rqst_ctx::s_get_rqst_src_addr_cb = get_rqst_src_addr_cb;
     ns_waflz::rqst_ctx::s_get_rqst_line_cb = get_rqst_line_cb;
@@ -331,15 +337,32 @@ int32_t waflz_profile_process(waflz_transaction_t* tx)
     ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
 
     int32_t l_s = tx->profile->profile->process(&l_event, l_ctx, ns_waflz::PART_MK_ALL, &l_rqst_ctx);
-    REQUIRE((l_s == WAFLZ_STATUS_OK));
-    if (l_event) {
-        REQUIRE((l_event->sub_event_size() >= 1));
-        REQUIRE((l_event->sub_event(0).has_rule_msg()));
-        //REQUIRE((l_event->sub_event(0).rule_msg() == "Blacklist IP match"));
-        NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
+    if (l_s == WAFLZ_STATUS_OK) {
+        if (l_event) {
+            if (l_event->sub_event_size() >= 1) {
+                if (l_event->sub_event(0).has_rule_msg()) {
+                    //REQUIRE((l_event->sub_event(0).rule_msg() == "Blacklist IP match"));
+                    NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
+                    //TODO make event available for the client query
+                } else {
+                    //TODO error processing
+                }
+            } else {
+                //TODO error processing
+            }
+        }
+    } else {
+        //TODO error processing
     }
-    if(l_event) { delete l_event; }
-    if(l_rqst_ctx) { delete l_rqst_ctx; }
+    
+    if (l_event) {
+        //TODO make event available for the client query
+        delete l_event;
+    }
+    if (l_rqst_ctx) {
+        delete l_rqst_ctx;
+    }
+    
     return l_s;
 }
 
