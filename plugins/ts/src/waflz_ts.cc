@@ -305,8 +305,8 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
     wp->profile = new ns_waflz::profile(*wp->engine);
 
     l_s = wp->profile->load(l_buf, l_buf_len);
-    NDBG_PRINT("error[%d]: %s\n", l_s, wp->profile->get_err_msg());
     if (l_s != WAFLZ_STATUS_OK) {
+        NDBG_PRINT("error[%d]: %s\n", l_s, wp->profile->get_err_msg());
         //TODO cleanup
         return nullptr;
     }
@@ -330,12 +330,13 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
     return wp;
 }
 
-int32_t waflz_profile_process(waflz_transaction_t* tx)
+int waflz_profile_process(waflz_transaction_t* tx)
 {
     void *l_ctx = tx;
     waflz_pb::event *l_event = NULL;
     ns_waflz::rqst_ctx *l_rqst_ctx = NULL;
 
+    int rc = 0;  //no internal errors; action - Pass;
     int32_t l_s = tx->profile->profile->process(&l_event, l_ctx, ns_waflz::PART_MK_ALL, &l_rqst_ctx);
     if (l_s == WAFLZ_STATUS_OK) {
         if (l_event) {
@@ -344,15 +345,19 @@ int32_t waflz_profile_process(waflz_transaction_t* tx)
                     //REQUIRE((l_event->sub_event(0).rule_msg() == "Blacklist IP match"));
                     NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
                     //TODO make event available for the client query
+                    rc = 1;  //no internal errors; action - not Pass (Deny, etc)
                 } else {
                     //TODO error processing
+                    rc = -1;  //internal errors
                 }
             } else {
                 //TODO error processing
+                rc = -1;
             }
         }
     } else {
         //TODO error processing
+        rc = -1;
     }
     
     if (l_event) {
@@ -363,7 +368,7 @@ int32_t waflz_profile_process(waflz_transaction_t* tx)
         delete l_rqst_ctx;
     }
     
-    return l_s;
+    return rc;
 }
 
 void waflz_profile_clean(waflz_profile_t* wp)

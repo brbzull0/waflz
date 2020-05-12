@@ -112,8 +112,8 @@ TEST_CASE( "benchmark test", "[benchmark2]" )
                     waflz_transaction_t* tx = waflz_new_transaction(wp);
                     
                     waflz_transaction_add_connection(tx, "127.0.0.1", "127.0.0.1", 80, "GET", "http");
-                    //waflz_process_uri(tx, "http://127.0.0.1/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl", "param1=test&para2=test2", "HTTP", "1.1");
-                    waflz_transaction_add_uri(tx, "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "param1=test&para2=test2", "HTTP", "1.1");
+                    waflz_transaction_add_uri(tx, "http://127.0.0.1/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl", "param1=test&para2=test2", "HTTP", "1.1");
+                    //-- waflz_transaction_add_uri(tx, "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "param1=test&para2=test2", "HTTP", "1.1");
 
                     waflz_transaction_add_request_header(tx, s_header_k0, s_header_v0);
                     waflz_transaction_add_request_header(tx, s_header_k1, s_header_v1);
