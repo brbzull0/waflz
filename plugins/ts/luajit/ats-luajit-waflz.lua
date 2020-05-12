@@ -48,16 +48,17 @@ function do_global_read_request()
   waflz.waflz_transaction_add_connection(txn, client_ip, host, incoming_port, method, scheme)
 
   -- processing for the uri information
-  local url = ts.client_request.get_url()  -- http://host/path?query
+  -- local url = ts.client_request.get_url()  -- http://host/path?query
   local path = ts.client_request.get_uri()  -- /path
   local uri = path  -- /path?query
-  local query_params = ts.client_request.get_uri_args() or ''
-  if (query_params ~= '') then 
+  local query = ts.client_request.get_uri_args() or ''
+  if (query ~= '') then
     uri = uri .. '?' .. query_params
   end
+  local url = uri  -- in order to get consistent request line for waflz
   local protocol = 'HTTP' --TODO
   local http_version = ts.client_request.get_version()
-  waflz.waflz_transaction_add_uri(txn, url, uri, path, query_params, protocol, http_version)
+  waflz.waflz_transaction_add_uri(txn, url, uri, path, query, protocol, http_version)
 
   -- processing for the request headers
   local hdrs = ts.client_request.get_headers()
@@ -78,6 +79,7 @@ function do_global_read_request()
     return 0
   end  
 
+  waflz.waflz_transaction_clean(txn)
   return 0
 end
 
