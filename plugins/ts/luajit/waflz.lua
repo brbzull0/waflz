@@ -19,7 +19,6 @@ void waflz_transaction_clean(waflz_transaction_t *transaction);
 
 ]]
 
---local waflz = ffi.load("/usr/local/waflz/lib/libwaflzts.so")
-local waflz = ffi.load("./libwaflzts.so.0")
+local waflz = ffi.load("/usr/local/waflz/lib/libwaflzts.so")
 
 return waflz

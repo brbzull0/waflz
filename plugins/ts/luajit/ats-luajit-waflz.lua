@@ -3,7 +3,6 @@ ts.add_package_path('/usr/local/var/lua/?.lua')
 local waflz = require("waflz")
 local waflz_config = require("waflz_config")
 local ffi = require("ffi")
-local C = require("C")
 
 local waflz_profile
 
@@ -18,7 +17,7 @@ function __init__(argtb)
   ts.debug("Waflz Rules dir is " .. waflz_config.rules_dir)
 
   waflz_config.profile_file_name = argtb[2]	
-  ts.debug("Waflz Profile file is " .. msc_config.profile_file_name)
+  ts.debug("Waflz Profile file is " .. waflz_config.profile_file_name)
 
   local result = waflz.waflz_profile_new_load(waflz_config.rules_dir, waflz_config.profile_file_name)
   waflz_profile = result;
@@ -43,20 +42,20 @@ function do_global_read_request()
   -- processing for the connection information
   local client_ip, client_port, client_ip_family = ts.client_request.client_addr.get_addr()
   local incoming_port = ts.client_request.client_addr.get_incoming_port()
-  local host = '127.0.0.1' --TODO
+  local host = ts.client_request.get_url_host()
   local method = ts.client_request.get_method()
-  local scheme = 'http' --TODO
+  local scheme = ts.client_request.get_url_scheme()
   waflz.waflz_transaction_add_connection(txn, client_ip, host, incoming_port, method, scheme)
 
   -- processing for the uri information
-  local url = 'http://127.0.0.1/path?query' --TODO
-  local uri = ts.client_request.get_uri()  --TODO
-  local path = '/path' --TODO
+  local url = ts.client_request.get_url()  -- http://host/path?query
+  local path = ts.client_request.get_uri()  -- /path
+  local uri = path  -- /path?query
   local query_params = ts.client_request.get_uri_args() or ''
   if (query_params ~= '') then 
     uri = uri .. '?' .. query_params
   end
-  local protocol = 'HTTP/1.1' --TODO
+  local protocol = 'HTTP' --TODO
   local http_version = ts.client_request.get_version()
   waflz.waflz_transaction_add_uri(txn, url, uri, path, query_params, protocol, http_version)
 
@@ -66,7 +65,7 @@ function do_global_read_request()
     waflz.waflz_transaction_add_request_header(txn, k, v)
   end
   local status = waflz.waflz_profile_process(txn)
-  ts.debug("done with processing request: " .. iv)
+  ts.debug("done with processing request: " .. status)
 
   -- detect if intervention is needed
   ts.ctx['status'] = nil
