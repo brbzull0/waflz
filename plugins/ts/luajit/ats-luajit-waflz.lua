@@ -37,7 +37,8 @@ function do_global_read_request()
     ts.debug("No rules loaded. Thus there is no processing done")
     return 0
   end
-  local txn = waflz.waflz_new_transaction(waflz_profile)
+  local trace = 1
+  local txn = waflz.waflz_new_transaction(waflz_profile, trace)
 
   -- processing for the connection information
   local client_ip, client_port, client_ip_family = ts.client_request.client_addr.get_addr()
@@ -45,7 +46,6 @@ function do_global_read_request()
   local host = ts.client_request.get_url_host()
   local method = ts.client_request.get_method()
   local scheme = ts.client_request.get_url_scheme()
-  waflz.waflz_transaction_add_connection(txn, client_ip, host, incoming_port, method, scheme)
 
   -- processing for the uri information
   -- local url = ts.client_request.get_url()  -- http://host/path?query
@@ -56,9 +56,9 @@ function do_global_read_request()
     uri = uri .. '?' .. query_params
   end
   local url = uri  -- in order to get consistent request line for waflz
-  local protocol = 'HTTP' --TODO
+  local protocol = 'HTTP'
   local http_version = ts.client_request.get_version()
-  waflz.waflz_transaction_add_uri(txn, url, uri, path, query, protocol, http_version)
+  waflz.waflz_transaction_add_request_connection_uri(txn, client_ip, host, incoming_port, method, scheme, url, uri, path, query, protocol, http_version)
 
   -- processing for the request headers
   local hdrs = ts.client_request.get_headers()
@@ -74,12 +74,12 @@ function do_global_read_request()
     ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
     ts.ctx['status'] = 503
     ts.http.set_resp(503)
-    waflz.waflz_transaction_clean(txn)
+    waflz.waflz_transaction_cleanup(txn)
     ts.debug("done with setting custom response")
     return 0
   end  
 
-  waflz.waflz_transaction_clean(txn)
+  waflz.waflz_transaction_cleanup(txn)
   return 0
 end
 

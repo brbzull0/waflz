@@ -1,29 +1,18 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2017 Verizon.  All Rights Reserved.
+//: Copyright (C) 2020 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    wb_profile_acl.cc
+//: \file:    waflz_ts.cc
 //: \details: TODO
-//: \author:  Reed Morrison
-//: \date:    12/30/2017
+//: \author:  Andrey Ter-Zakhariants
+//: \date:    05/15/2020
 //:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
+//:   Licensed TODO
 //:
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
 //: includes
 //: ----------------------------------------------------------------------------
-//--#include "catch/catch.hpp"
 #include "waflz/engine.h"
 #include "waflz/profile.h"
 #include "waflz/instances.h"
@@ -37,15 +26,6 @@
 #include "support/file_util.h"
 #include <unistd.h>
 #include <iostream>
-//: ----------------------------------------------------------------------------
-//: constants
-//: ----------------------------------------------------------------------------
-#ifndef STATUS_OK
-  #define STATUS_OK 0
-#endif
-#ifndef STATUS_ERROR
-  #define STATUS_ERROR -1
-#endif
 
 #include "waflz_ts.h"
 
@@ -56,6 +36,7 @@ struct waflz_profile_t {
 
 struct waflz_transaction_t {
     waflz_profile_t* profile;
+    int trace;  // 0 - no trace
 
     const char *client_ip;
     const char *host;
@@ -63,7 +44,7 @@ struct waflz_transaction_t {
     const char *method;
     const char *scheme;
 
-    const char *url;  //(REQUEST_URI_RAW)  "http://127.0.0.1/test.pl?param1=test&para2=test2"
+    const char *url;  //(REQUEST_URI_RAW)  the same as uri
     const char *uri;  //(REQUEST_URI) : This variable holds the full request URL including the query string data (e.g., /index.php?p=X). However, it will never contain a domain name, even if it was provided on the request line.
     const char *path;  //1. (REQUEST_FILENAME): This variable holds the relative request URL without the query string part (e.g., /index.php).
                        //2. (REQUEST_BASENAME): This variable holds just the filename part of REQUEST_FILENAME (e.g., index.php).
@@ -78,6 +59,7 @@ struct waflz_transaction_t {
 
     waflz_transaction_t()
         : profile(nullptr),
+          trace(0),
           client_ip(nullptr),
           host(nullptr),
           port(0),
@@ -106,7 +88,9 @@ struct waflz_transaction_t {
 static int32_t get_rqst_src_addr_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_src_addr_cb: " << t->client_ip << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_src_addr_cb: " << t->client_ip << "\n";
+        }
         *a_data = t->client_ip;  //s_ip;
         a_len = strlen(t->client_ip);  //strlen(s_ip);
         return 0;
@@ -124,7 +108,9 @@ static int32_t get_rqst_line_cb(const char **a_data, uint32_t &a_len, void *a_ct
         t->rqst_line.append(t->protocol);
         t->rqst_line.append("/");
         t->rqst_line.append(t->http_version);
-        std::cout << "get_rqst_line_cb: " << t->rqst_line << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_line_cb: " << t->rqst_line << "\n";
+        }
         //static const char s_line[] = "GET /test.pl HTTP/1.1";
         *a_data = t->rqst_line.c_str();  //s_line;
         a_len = t->rqst_line.size();  //strlen(s_line);
@@ -136,7 +122,9 @@ static int32_t get_rqst_line_cb(const char **a_data, uint32_t &a_len, void *a_ct
 static int32_t get_rqst_host_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_host_cb: " << t->host << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_host_cb: " << t->host << "\n";
+        }
         //static const char s_uri[] = "127.0.0.1";
         *a_data = t->host;  //s_uri;
         a_len = strlen(t->host);  //strlen(s_uri);
@@ -148,7 +136,9 @@ static int32_t get_rqst_host_cb(const char **a_data, uint32_t &a_len, void *a_ct
 static int32_t get_rqst_query_str_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_query_str_cb: " << t->query << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_query_str_cb: " << t->query << "\n";
+        }
         //static const char s_line[] = "param1=test&para2=test2";  //TODO no question mark?
         *a_data = t->query;  //s_line;
         a_len = strlen(t->query);  //strlen(s_line);
@@ -161,7 +151,9 @@ static int32_t get_rqst_query_str_cb(const char **a_data, uint32_t &a_len, void 
 static int32_t get_rqst_uri_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_uri_cb: " << t->uri << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_uri_cb: " << t->uri << "\n";
+        }
         *a_data = t->uri;  //s_uri;
         a_len = strlen(t->uri);  //strlen(s_uri);
         return 0;
@@ -173,7 +165,9 @@ static int32_t get_rqst_uri_cb(const char **a_data, uint32_t &a_len, void *a_ctx
 static int32_t get_rqst_method_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_method_cb: " << t->method << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_method_cb: " << t->method << "\n";
+        }
         *a_data = t->method;  //s_method;
         a_len = strlen(t->method);  //strlen(s_method);
         return 0;
@@ -187,7 +181,9 @@ static int32_t get_rqst_protocol_cb(const char **a_data, uint32_t &a_len, void *
         t->rqst_protocol.assign(t->protocol);
         t->rqst_protocol.append("/");
         t->rqst_protocol.append(t->http_version);
-        std::cout << "get_rqst_protocol_cb: " << t->rqst_protocol << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_protocol_cb: " << t->rqst_protocol << "\n";
+        }
         //static const char s_line[] = "HTTP/1.1";
         *a_data = t->rqst_protocol.c_str();  //s_line;
         a_len = t->rqst_protocol.size();  //strlen(s_line);
@@ -199,7 +195,9 @@ static int32_t get_rqst_protocol_cb(const char **a_data, uint32_t &a_len, void *
 static int32_t get_rqst_scheme_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_scheme_cb: " << t->scheme << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_scheme_cb: " << t->scheme << "\n";
+        }
         //static const char s_line[] = "http";
         *a_data = t->scheme;  //s_line;
         a_len = strlen(t->scheme);  //strlen(s_line);
@@ -211,7 +209,9 @@ static int32_t get_rqst_scheme_cb(const char **a_data, uint32_t &a_len, void *a_
 static int32_t get_rqst_port_cb(uint32_t &a_val, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_port_cb: " << t->port << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_port_cb: " << t->port << "\n";
+        }
         a_val = t->port;  //80;
         return 0;
 }
@@ -221,7 +221,9 @@ static int32_t get_rqst_port_cb(uint32_t &a_val, void *a_ctx)
 static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_url_cb: " << t->url << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_url_cb: " << t->url << "\n";
+        }
         //static const char s_line[] = "127.0.0.1/test.pl?param1=test&para2=test2";
         *a_data = t->url;  //s_line;
         a_len = strlen(t->url);  //strlen(s_line);
@@ -234,23 +236,27 @@ static int32_t get_rqst_url_cb(const char **a_data, uint32_t &a_len, void *a_ctx
 static int32_t get_rqst_path_cb(const char **a_data, uint32_t &a_len, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_path_cb: " << t->path << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_path_cb: " << t->path << "\n";
+        }
         *a_data = t->path;  //s_path;
         a_len = strlen(t->path);  //strlen(s_path);
         return 0;
 }
 //: ----------------------------------------------------------------------------
-//:+ get_rqst_header_size_cb
+//: get_rqst_header_size_cb
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_header_size_cb(uint32_t &a_val, void *a_ctx)
 {
         waflz_transaction_t* t = (waflz_transaction_t*)a_ctx;
-        std::cout << "get_rqst_header_size_cb: " << t->headers.size() << "\n";
+        if (t->trace) {
+            std::cout << "get_rqst_header_size_cb: " << t->headers.size() << "\n";
+        }
         a_val = t->headers.size();  //10;
         return 0;
 }
 //: ----------------------------------------------------------------------------
-//:+ get_rqst_header_w_idx_cb
+//: get_rqst_header_w_idx_cb
 //: ----------------------------------------------------------------------------
 static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
                                         uint32_t &ao_key_len,
@@ -266,7 +272,9 @@ static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
         ao_val_len = 0;
         if (t->headers.size() > 0 && a_idx < t->headers.size())
         {
-                std::cout << "get_rqst_header_w_idx_cb: a_idx: " << a_idx << " k: [" << t->headers[a_idx].first << "] v: [" << t->headers[a_idx].second << "]\n";
+                if (t->trace) {
+                        std::cout << "get_rqst_header_w_idx_cb: a_idx: " << a_idx << " k: [" << t->headers[a_idx].first << "] v: [" << t->headers[a_idx].second << "]\n";
+                }
                 *ao_key = t->headers[a_idx].first;
                 ao_key_len = strlen(t->headers[a_idx].first);
                 *ao_val = t->headers[a_idx].second;
@@ -343,7 +351,9 @@ int waflz_profile_process(waflz_transaction_t* tx)
             if (l_event->sub_event_size() >= 1) {
                 if (l_event->sub_event(0).has_rule_msg()) {
                     //REQUIRE((l_event->sub_event(0).rule_msg() == "Blacklist IP match"));
-                    NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
+                    if (tx->trace) {
+                        NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
+                    }
                     //TODO make event available for the client query
                     rc = 1;  //no internal errors; action - not Pass (Deny, etc)
                 } else {
@@ -371,38 +381,38 @@ int waflz_profile_process(waflz_transaction_t* tx)
     return rc;
 }
 
-void waflz_profile_clean(waflz_profile_t* wp)
+void waflz_profile_cleanup(waflz_profile_t* wp)
 {
     delete wp->profile;
     delete wp->engine;
     delete wp;
 }
 
-waflz_transaction_t *waflz_new_transaction(waflz_profile_t *profile)
+waflz_transaction_t *waflz_new_transaction(waflz_profile_t *profile, int trace)
 {
     waflz_transaction_t *t = new waflz_transaction_t;
-    t->profile = profile;
+    t->profile = profile;  //TODO move to constructor
+    t->trace = trace;
     return t;
 }
 
-int waflz_transaction_add_connection(waflz_transaction_t *t, const char *client_ip, const char *host, int port, const char* method, const char *scheme)
+int waflz_transaction_add_request_connection_uri(waflz_transaction_t *t,
+                                                 const char *client_ip, const char *host, int port, const char* method, const char *scheme,
+                                                 const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version)
 {
     t->client_ip = client_ip;
     t->host = host;
     t->port = port;
     t->method = method;
     t->scheme = scheme;
-    return 0;
-}
 
-int waflz_transaction_add_uri(waflz_transaction_t *t, const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version)
-{
     t->url = url;
     t->uri = uri;
     t->path = path;
     t->query = query;
     t->protocol = protocol;
     t->http_version = http_version;
+    
     return 0;
 }
 
@@ -412,7 +422,7 @@ int waflz_transaction_add_request_header(waflz_transaction_t *t, const char *key
     return 0;
 }
 
-void waflz_transaction_clean(waflz_transaction_t *transaction)
+void waflz_transaction_cleanup(waflz_transaction_t *transaction)
 {
     delete transaction;
 }

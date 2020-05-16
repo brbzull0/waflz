@@ -109,11 +109,16 @@ TEST_CASE( "benchmark test", "[benchmark2]" )
                 unsigned long long NUM_REQUESTS(1);
                 std::cout << "Doing " << NUM_REQUESTS << " transactions...\n";
                 for (unsigned long long i = 0; i < NUM_REQUESTS; i++) {
-                    waflz_transaction_t* tx = waflz_new_transaction(wp);
+                    int trace = 0;
+                    waflz_transaction_t* tx = waflz_new_transaction(wp, trace);
                     
-                    waflz_transaction_add_connection(tx, "127.0.0.1", "127.0.0.1", 80, "GET", "http");
-                    waflz_transaction_add_uri(tx, "http://127.0.0.1/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl", "param1=test&para2=test2", "HTTP", "1.1");
-                    //-- waflz_transaction_add_uri(tx, "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "/test.pl?param1=test&para2=test2", "param1=test&para2=test2", "HTTP", "1.1");
+                    waflz_transaction_add_request_connection_uri(tx, "127.0.0.1", "127.0.0.1", 80, "GET", "http",
+                                                                 "/test.pl?param1=test&para2=test2", //url
+                                                                 "/test.pl?param1=test&para2=test2", //uri
+                                                                 "/test.pl", //path,
+                                                                 "param1=test&para2=test2", //query
+                                                                 "HTTP", //protocol
+                                                                 "1.1"); //protocol version
 
                     waflz_transaction_add_request_header(tx, s_header_k0, s_header_v0);
                     waflz_transaction_add_request_header(tx, s_header_k1, s_header_v1);
@@ -129,12 +134,12 @@ TEST_CASE( "benchmark test", "[benchmark2]" )
                     
                     int32_t l_s = waflz_profile_process(tx);
                     REQUIRE((l_s == WAFLZ_STATUS_OK));
-                    waflz_transaction_clean(tx);
+                    waflz_transaction_cleanup(tx);
                 }
 
                 // -----------------------------------------
                 // cleanup
                 // -----------------------------------------
-                waflz_profile_clean(wp);
+                waflz_profile_cleanup(wp);
         }
 }
