@@ -53,7 +53,7 @@ function do_global_read_request()
   local uri = path  -- /path?query
   local query = ts.client_request.get_uri_args() or ''
   if (query ~= '') then
-    uri = uri .. '?' .. query_params
+    uri = uri .. '?' .. query
   end
   local url = uri  -- in order to get consistent request line for waflz
   local protocol = 'HTTP'

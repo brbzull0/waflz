@@ -20,6 +20,6 @@ void waflz_transaction_cleanup(waflz_transaction_t *transaction);
 
 ]]
 
-local waflz = ffi.load("/usr/local/waflz/lib/libwaflzts.so.0")
+local waflz = ffi.load("/opt/oath/safet-waflz/0.1/lib/libwaflzts.so.0")
 
 return waflz
