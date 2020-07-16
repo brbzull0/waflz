@@ -26,6 +26,7 @@
 #include "support/file_util.h"
 #include <unistd.h>
 #include <iostream>
+#include <cstring>
 
 #include "waflz_ts.h"
 
@@ -56,6 +57,7 @@ struct waflz_transaction_t {
 
     std::string rqst_line;  // GET /index.html HTTP/1.1
     std::string rqst_protocol;  // HTTP/1.1
+    waflz_pb::event *event = NULL;
 
     waflz_transaction_t()
         : profile(nullptr),
@@ -73,10 +75,13 @@ struct waflz_transaction_t {
           http_version(nullptr),
           headers(),
           rqst_line(),
-          rqst_protocol()
+          rqst_protocol(),
+          event(nullptr)
     {}
     ~waflz_transaction_t()
-    {}
+    {
+        delete event;
+    }
     waflz_transaction_t(const waflz_transaction_t&);
     waflz_transaction_t& operator=(const waflz_transaction_t&);
 };
@@ -354,7 +359,8 @@ int waflz_profile_process(waflz_transaction_t* tx)
                     if (tx->trace) {
                         NDBG_PRINT("event: %s\n", l_event->ShortDebugString().c_str());
                     }
-                    //TODO make event available for the client query
+                    tx->event = l_event;  // make event available for the client query
+                    l_event = NULL;
                     rc = 1;  //no internal errors; action - not Pass (Deny, etc)
                 } else {
                     //TODO error processing
@@ -371,7 +377,6 @@ int waflz_profile_process(waflz_transaction_t* tx)
     }
     
     if (l_event) {
-        //TODO make event available for the client query
         delete l_event;
     }
     if (l_rqst_ctx) {
@@ -425,4 +430,22 @@ int waflz_transaction_add_request_header(waflz_transaction_t *t, const char *key
 void waflz_transaction_cleanup(waflz_transaction_t *transaction)
 {
     delete transaction;
+}
+
+int waflz_transaction_get_event(waflz_transaction_t *transaction, waflz_event_t *event)
+{
+    if (transaction->event) {
+        auto& e = transaction->event->sub_event(0);
+        auto s = e.ShortDebugString();
+        auto sz = s.size() + 1;
+        char* log = (char*)std::malloc(sz);  // a caller will do free()
+        if (log) {
+            std::strcpy(log, s.c_str());
+            event->log = log;
+        }
+        if (e.has_rule_id()) {
+            event->rule_id = e.rule_id();
+        }
+    }
+    return 0;
 }

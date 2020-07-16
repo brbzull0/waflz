@@ -21,6 +21,11 @@ extern "C" {
 
 typedef struct waflz_profile_t waflz_profile_t;
 typedef struct waflz_transaction_t waflz_transaction_t;
+typedef struct waflz_event_t
+{
+    long rule_id;
+    char *log;
+} waflz_event_t;
 
 waflz_profile_t* waflz_profile_new_load(const char* rule_dir, const char* profile_file_name);
 int waflz_profile_process(waflz_transaction_t* tx);
@@ -32,6 +37,7 @@ int waflz_transaction_add_request_connection_uri(waflz_transaction_t *transactio
                                                  const char *url, const char *uri, const char *path, const char *query, const char *protocol, const char *http_version);
 int waflz_transaction_add_request_header(waflz_transaction_t *transaction, const char *key, const char *value);
 void waflz_transaction_cleanup(waflz_transaction_t *transaction);
+int waflz_transaction_get_event(waflz_transaction_t *transaction, waflz_event_t *event);
 
 #ifdef __cplusplus
 }
