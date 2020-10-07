@@ -292,10 +292,10 @@ waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
                                         const char* profile_file_name)
 {
     //must be a singleton
-    static waflz_profile_t* wp = nullptr;
-    if (wp)
-        return wp;
-    wp = new waflz_profile_t;
+    //static waflz_profile_t* wp = nullptr;
+    //if (wp)
+    //    return wp;
+    waflz_profile_t* wp = new waflz_profile_t;
     
     wp->engine = new ns_waflz::engine();
     wp->engine->set_ruleset_dir(rule_dir); //done
