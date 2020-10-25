@@ -145,12 +145,6 @@ SET_TARGET_PROPERTIES(waflzts
   POSITION_INDEPENDENT_CODE ON
 )
 
-# Create symlink for libwaflz.so.<soversion>
-SET_TARGET_PROPERTIES(waflzts
-  PROPERTIES
-  SOVERSION 0
-)
-
 # Add install target for the library
 install(TARGETS waflzts
   DESTINATION lib
