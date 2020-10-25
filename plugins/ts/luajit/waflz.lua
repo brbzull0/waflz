@@ -26,6 +26,6 @@ int waflz_transaction_get_event(waflz_transaction_t *transaction, waflz_event_t 
 
 ]]
 
-local waflz = ffi.load("/opt/oath/safet-waflz/0.1/lib/libwaflzts.so.0")
+local waflz = ffi.load("/opt/oath/safet-waflz/0.1/lib/libwaflzts.so")
 
 return waflz
