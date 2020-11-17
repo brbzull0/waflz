@@ -291,20 +291,23 @@ static int32_t get_rqst_header_w_idx_cb(const char **ao_key,
 waflz_profile_t* waflz_profile_new_load(const char* rule_dir,
                                         const char* profile_file_name)
 {
-    //must be a singleton
-    //static waflz_profile_t* wp = nullptr;
-    //if (wp)
-    //    return wp;
-    waflz_profile_t* wp = new waflz_profile_t;
+    int32_t l_s;
     
-    wp->engine = new ns_waflz::engine();
-    wp->engine->set_ruleset_dir(rule_dir); //done
+    //must be a singleton
+    static ns_waflz::engine* we = nullptr;
+    if (!we) {
+        we = new ns_waflz::engine();
+        we->set_ruleset_dir(rule_dir); //done
 
-    int32_t l_s = wp->engine->init(); //done
-    if (l_s != WAFLZ_STATUS_OK) {
-        //TODO cleanup
-        return nullptr;
+        l_s = we->init(); //done
+        if (l_s != WAFLZ_STATUS_OK) {
+            //TODO cleanup
+            return nullptr;
+        }
     }
+
+    waflz_profile_t* wp = new waflz_profile_t;
+    wp->engine = we;
 
     char *l_buf;
     uint32_t l_buf_len;
@@ -389,7 +392,7 @@ int waflz_profile_process(waflz_transaction_t* tx)
 void waflz_profile_cleanup(waflz_profile_t* wp)
 {
     delete wp->profile;
-    delete wp->engine;
+    //delete wp->engine;
     delete wp;
 }
 
