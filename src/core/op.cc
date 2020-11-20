@@ -715,7 +715,14 @@ OP(PM)
         // -------------------------------------------------
         ac *l_ac = (ac *)(a_op._reserved_1());
         bool l_match = false;
-        l_match = l_ac->find_first(a_buf, a_len);
+        const bool l_tolower_applied =
+            ((a_ctx->m_src_asn_str.m_tx_applied &
+              ns_waflz::TX_APPLIED_TOLOWER) == ns_waflz::TX_APPLIED_TOLOWER);
+        l_match = l_ac->find_first(a_buf, a_len, l_tolower_applied);
+        if(l_tolower_applied)
+        {
+                a_ctx->m_src_asn_str.m_tx_applied &= ~ns_waflz::TX_APPLIED_TOLOWER;
+        }
         if(l_match)
         {
                 ao_match = true;
@@ -747,7 +754,15 @@ OP(PMF)
         // -------------------------------------------------
         ac *l_ac = (ac *)(a_op._reserved_1());
         bool l_match = false;
-        l_match = l_ac->find_first(a_buf, a_len);
+        const bool l_tolower_applied =
+            ((a_ctx->m_src_asn_str.m_tx_applied &
+              ns_waflz::TX_APPLIED_TOLOWER) == ns_waflz::TX_APPLIED_TOLOWER);
+
+        l_match = l_ac->find_first(a_buf, a_len, l_tolower_applied);
+        if(l_tolower_applied)
+        {
+                a_ctx->m_src_asn_str.m_tx_applied &= ~ns_waflz::TX_APPLIED_TOLOWER;
+        }
         if(l_match)
         {
                 ao_match = true;
@@ -779,7 +794,14 @@ OP(PMFROMFILE)
         // -------------------------------------------------
         ac *l_ac = (ac *)(a_op._reserved_1());
         bool l_match = false;
-        l_match = l_ac->find_first(a_buf, a_len);
+        const bool l_tolower_applied =
+            ((a_ctx->m_src_asn_str.m_tx_applied &
+              ns_waflz::TX_APPLIED_TOLOWER) == ns_waflz::TX_APPLIED_TOLOWER);
+        l_match = l_ac->find_first(a_buf, a_len, l_tolower_applied);
+        if(l_tolower_applied)
+        {
+                a_ctx->m_src_asn_str.m_tx_applied &= ~ns_waflz::TX_APPLIED_TOLOWER;
+        }
         if(l_match)
         {
                 ao_match = true;
